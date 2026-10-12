@@ -101,6 +101,26 @@ check "a timeout that is not seconds is refused" 1 "timeout must be a whole numb
 run_deploy wait-live INPUT_COMMIT_SHA=main
 check "a commit that is not a sha is refused" 1 "commit-sha must be a full git commit sha"
 
+run_deploy wait-live
+if grep -q excali_test_token <<<"$OUT"; then
+  echo "FAIL outside GitHub Actions no output line may contain the token"; FAILURES=$((FAILURES + 1))
+else
+  echo "ok   the token is never printed outside GitHub Actions"
+fi
+run_deploy wait-live GITHUB_ACTIONS=true
+LEAKS=$(grep excali_test_token <<<"$OUT" || true)
+if [ "$LEAKS" != "::add-mask::excali_test_token" ] && [ -n "$LEAKS" ]; then
+  echo "FAIL on GitHub Actions only the runner's mask command may carry the token: $LEAKS"; FAILURES=$((FAILURES + 1))
+else
+  echo "ok   on GitHub Actions the token only reaches the runner's mask command"
+fi
+run_deploy refused
+if grep -q excali_test_token <<<"$OUT"; then
+  echo "FAIL a failing run printed the token"; FAILURES=$((FAILURES + 1))
+else
+  echo "ok   a failing run does not print the token"
+fi
+
 if [ "$FAILURES" -gt 0 ]; then
   echo "$FAILURES failed"
   exit 1

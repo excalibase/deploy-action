@@ -45,7 +45,10 @@ check_inputs() {
   [[ "${INPUT_TIMEOUT:-}" =~ ^[1-9][0-9]{0,5}$ ]] || fail "timeout must be a whole number of seconds"
   [[ "${INPUT_COMMIT_SHA:-}" =~ ^([0-9a-f]{40}|[0-9a-f]{64})?$ ]] || fail "commit-sha must be a full git commit sha"
   [[ "${INPUT_API_URL:-}" =~ ^https?://[^[:space:]]+$ ]] || fail "api-url must be an http(s) URL"
-  echo "::add-mask::$INPUT_TOKEN"
+  # Only the GitHub runner consumes this command; any other CI would log the token.
+  if [ "${GITHUB_ACTIONS:-}" = true ]; then
+    echo "::add-mask::$INPUT_TOKEN"
+  fi
 }
 
 # api METHOD PATH [BODY]: sets CODE (000 when no answer) and BODY from the API.
